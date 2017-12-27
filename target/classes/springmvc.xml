@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/task
+        http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+    <context:component-scan base-package="com.soft" />
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+    <mvc:default-servlet-handler />
+    <mvc:annotation-driven/>
+
+    <task:annotation-driven/>
+
+
+
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/"/>
+            <mvc:exclude-mapping path="/say"/>
+            <mvc:exclude-mapping path="/socket"/>
+            <bean class="com.soft.interceptor.DemoInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <mvc:view-controller path="/" view-name="/index"/>
+    <mvc:view-controller path="/toUpload" view-name="/upload"/>
+    <mvc:view-controller path="/async" view-name="/async"/>
+    <mvc:view-controller path="/test" view-name="Test"/>
+
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix">
+            <value>/WEB-INF/classes/view/</value>
+        </property>
+        <property name="suffix">
+         <value>.html</value>
+        </property>
+    </bean>
+
+
+    <!--文件上传解析器-->
+   <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+      <property name="maxUploadSize" value="1000000000000000000"/>
+   </bean>
+
+
+
+    <!--静态资源处理-->
+
+    <mvc:resources mapping="/static/**" location="classpath:/static/"/>
+
+</beans>

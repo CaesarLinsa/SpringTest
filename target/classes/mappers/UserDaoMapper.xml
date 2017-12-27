@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.dao.UserDao">
+
+   <insert id="batchInsert" parameterType="java.util.List">
+       insert ignore into user (id , userName,password,gender)
+              values
+                <foreach collection="list" item="item" index="index" separator=",">
+                    (
+                    #{item.id},#{item.userName},#{item.passWord},#{item.gender}
+                    )
+                </foreach>
+   </insert>
+
+   <select id="selectAll" resultType="User">
+
+     select * from User
+
+   </select>
+    
+    <insert id="InsertUser" parameterType="User">
+
+        INSERT into user (id ,userName, password, gender) values (#{id},#{userName},#{passWord},#{gender})
+
+    </insert>
+    
+</mapper>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Async Page</title>
+</head>
+<body>
+   <script type="text/javascript" src="static/js/jquery-3.0.0.min.js"></script>
+   <script type="text/javascript">
+
+        deferred();
+
+      function deferred() {
+
+          $.get('defer',function (data) {
+                console.log(data);
+                deferred();
+          });
+
+      }
+
+
+   </script>
+</body>
+</html>

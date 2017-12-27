@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:websocket="http://www.springframework.org/schema/websocket"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/websocket
+        http://www.springframework.org/schema/websocket/spring-websocket-4.1.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- 引入数据库配置文件 -->
+    <context:property-placeholder location="classpath:jdbc.properties" />
+    <!--websocket 配置-->
+
+    <!--websocket映射路径，测试可连接，前台通过 var ws=new Websocket(url)
+    url=http://ip:port/项目名称/映射路径
+    在这个例子中时 url=http://localhost:8091/SpringTest/websocket-->
+
+    <websocket:handlers  allowed-origins="*">
+        <websocket:mapping path="/websocket" handler="websocket"/>
+        <websocket:handshake-interceptors>
+            <bean id="handshake" class="com.soft.controllers.HandshakeInterceptor"></bean>
+        </websocket:handshake-interceptors>
+    </websocket:handlers>
+
+    <!--配置的sockjs映射路径不能实现websocket连接-->
+    <websocket:handlers  allowed-origins="*">
+        <websocket:mapping path="/sockjs/websocket" handler="websocket"/>
+        <websocket:sockjs/>
+    </websocket:handlers>
+
+    <bean id="websocket" class="com.soft.controllers.ChatAnnotation"/>
+
+    <!-- 配置websocket消息的最大缓冲区长度 -->
+    <bean class="org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean">
+        <property name="maxTextMessageBufferSize" value="8192"/>
+        <property name="maxBinaryMessageBufferSize" value="8192"/>
+    </bean>
+
+    <!--1. 写数据源配置 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+        <property name="driverClassName" value="${jdbc.driver}" />
+        <property name="url" value="${jdbc.url}" />
+        <property name="username" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+        <!-- 初始化连接大小 -->
+        <property name="initialSize" value="${jdbc.initialSize}"></property>
+        <!-- 连接池最大数量 -->
+        <property name="maxActive" value="${jdbc.maxActive}"></property>
+        <!-- 连接池最大空闲 -->
+        <property name="maxIdle" value="${jdbc.maxIdle}"></property>
+    </bean>
+
+
+    <!--1. 读数据源配置 -->
+    <bean id="readDataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+        <property name="driverClassName" value="${readjdbc.driver}" />
+        <property name="url" value="${readjdbc.url}" />
+        <property name="username" value="${readjdbc.username}" />
+        <property name="password" value="${readjdbc.password}" />
+        <!-- 初始化连接大小 -->
+        <property name="initialSize" value="${readjdbc.initialSize}"></property>
+        <!-- 连接池最大数量 -->
+        <property name="maxActive" value="${readjdbc.maxActive}"></property>
+        <!-- 连接池最大空闲 -->
+        <property name="maxIdle" value="${readjdbc.maxIdle}"></property>
+    </bean>
+
+    <!-- 动态配置数据源 -->
+    <bean id ="dataSources" class= "com.soft.datasource.DynamicDataSource" >
+        <property name ="targetDataSources">
+            <map key-type ="java.lang.String">
+                <entry value-ref ="dataSource" key= "dataSource"></entry >
+                <entry value-ref ="readDataSource" key= "readDataSource"></entry >
+            </map >
+        </property >
+    </bean >
+
+
+
+    <!--2. 配置sqlSessionFactory -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSources" />
+        <!-- 自动扫描mapping.xml文件 -->
+        <property name="mapperLocations" value="classpath:mappers/*.xml"></property>
+        <!--配置扫描实体类的包 -->
+        <property name="typeAliasesPackage" value="com.soft.entity"></property>
+        <property name="plugins">
+        <bean class="com.github.pagehelper.PageHelper">
+            <property name="properties">
+                <value>dialect=mysql</value>
+            </property>
+        </bean>
+        </property>
+    </bean>
+
+    <!-- Mapper接口所在包名，Spring会自动查找其下的类 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.soft.dao" />
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+
+    <!-- 3.配置Spring的声明式事务 -->
+    <!-- 3.1:配置事务管理器 -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSources" />
+    </bean>
+
+    <tx:annotation-driven />
+
+    <!-- 3.2:配置事务切面，需要事务管理器 -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="pageList" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="list" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" propagation="REQUIRED"/>
+        </tx:attributes>
+    </tx:advice>
+
+     <!--3.3:配置事务切点，并把事务切点和事务属性关联起来-->
+<!--     <aop:config>
+        <aop:pointcut id="txPointcut" expression="execution(* com.soft.service.*.*(..))" />
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+    </aop:config>-->
+
+
+
+</beans>
